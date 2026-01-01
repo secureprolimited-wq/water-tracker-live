@@ -1,73 +1,85 @@
 const express = require('express');
 const cors = require('cors');
-const NodeCache = require('node-cache');
-const { scrapeAllIncidents } = require('./scraper');
 
 const app = express();
-const cache = new NodeCache({ stdTTL: 900 }); // Cache for 15 minutes
-
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Health check endpoint
+// Health check
 app.get('/', (req, res) => {
   res.json({ 
     status: 'online', 
-    message: 'UK Water Tracker API',
+    message: 'UK Water Tracker API - Live Links Version',
     endpoints: {
       incidents: '/api/incidents'
     }
   });
 });
 
-// Main API endpoint
-app.get('/api/incidents', async (req, res) => {
-  try {
-    // Check cache first
-    const cachedData = cache.get('incidents');
-    if (cachedData) {
-      console.log('Returning cached data');
-      return res.json(cachedData);
+// Main incidents endpoint
+app.get('/api/incidents', (req, res) => {
+  const incidents = [
+    {
+      company: 'thames',
+      location: 'Thames Valley & London',
+      status: 'View Live Map',
+      details: 'Click to view Thames Water live network status and current incidents.',
+      delivery: false,
+      link: 'https://www.thameswater.co.uk/network-latest',
+      priority: false
+    },
+    {
+      company: 'southern',
+      location: 'Hampshire, Sussex & Kent',
+      status: 'View Live Map',
+      details: 'Click to view Southern Water live incident map and supply interruptions.',
+      delivery: false,
+      link: 'https://www.southernwater.co.uk/works-or-issues-in-my-area',
+      priority: false
+    },
+    {
+      company: 'southeast',
+      location: 'Kent, Sussex, Surrey',
+      status: 'AquAlerter Map',
+      details: 'Click to view South East Water live AquAlerter map for current incidents.',
+      delivery: false,
+      link: 'https://inyourarea.digdat.co.uk/southeastwater',
+      priority: false
+    },
+    {
+      company: 'southwest',
+      location: 'Devon, Cornwall, Somerset',
+      status: 'View Live Updates',
+      details: 'Click to view South West Water service updates and incidents.',
+      delivery: false,
+      link: 'https://www.southwestwater.co.uk/household/help-support/in-your-area/service-updates',
+      priority: false
+    },
+    {
+      company: 'affinity',
+      location: 'Beds, Bucks, Herts, Essex',
+      status: 'View Alerts',
+      details: 'Click to view Affinity Water current alerts and planned works.',
+      delivery: false,
+      link: 'https://www.affinitywater.co.uk/alerts',
+      priority: false
     }
+  ];
 
-    console.log('Fetching fresh data...');
-    const incidents = await scrapeAllIncidents();
-    
-    const response = {
-      updated: new Date().toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'Europe/London'
-      }) + ' GMT',
-      totalIncidents: incidents.length,
-      incidents: incidents,
-      nextUpdate: '15 minutes'
-    };
+  const response = {
+    updated: new Date().toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'Europe/London'
+    }) + ' GMT',
+    totalIncidents: incidents.length,
+    incidents: incidents,
+    note: 'Click each link to view live incident data from water companies'
+  };
 
-    // Cache the response
-    cache.set('incidents', response);
-
-    res.json(response);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch incidents',
-      message: error.message,
-      updated: new Date().toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'Europe/London'
-      }) + ' GMT'
-    });
-  }
-});
-
-// Force refresh endpoint (clears cache)
-app.post('/api/refresh', (req, res) => {
-  cache.del('incidents');
-  res.json({ message: 'Cache cleared. Next request will fetch fresh data.' });
+  res.json(response);
 });
 
 app.listen(PORT, () => {
